@@ -6,22 +6,16 @@
 
 using namespace std;
 
-/* =========================================================
-   InputHelper
-   - Centralized input validation
-   - Prevents infinite loops on invalid input
-   ========================================================= */
+/* ===================== INPUT HELPER ===================== */
 class InputHelper
 {
 public:
-    // Clears error flags and removes invalid input
     static void clear()
     {
         cin.clear();
         cin.ignore(10000, '\n');
     }
 
-    // Reads input safely and validates type
     template <typename T>
     static bool read(T &value)
     {
@@ -35,21 +29,14 @@ public:
     }
 };
 
-/* =========================================================
-   Address
-   - Simple data structure (Value Object)
-   ========================================================= */
+/* ===================== ADDRESS ===================== */
 struct Address
 {
     string city;
     string street;
 };
 
-/* =========================================================
-   Person (Abstract Base Class)
-   - Common interface for all people
-   - Enforces polymorphic behavior
-   ========================================================= */
+/* ===================== PERSON (ABSTRACT) ===================== */
 class Person
 {
 protected:
@@ -59,70 +46,60 @@ protected:
 
 public:
     virtual ~Person() = default;
-
-    // Display info to console
     virtual void display() const = 0;
-
-    // Save record to file
     virtual void save(ofstream &out) const = 0;
 };
 
-/* =========================================================
-   Student
-   - Domain model for student entity
-   ========================================================= */
-class Student : public Person
+/* ===================== PATIENT ===================== */
+class Patient : public Person
 {
 private:
-    float gpa;
-    static int count; // Tracks active student objects
+    string wardType; // e.g., General, ICU, VIP
+    static int count;
 
 public:
-    Student(const string &n, int i, const Address &addr, float g)
+    Patient(const string &n, int i, const Address &addr, const string &ward)
     {
-        if (g < 0.0f || g > 4.0f)
-            throw runtime_error("GPA must be between 0.0 and 4.0");
+        if (ward != "General" && ward != "ICU" && ward != "VIP")
+            throw runtime_error("Ward type must be General, ICU, or VIP");
 
         name = n;
         id = i;
         address = addr;
-        gpa = g;
+        wardType = ward;
         count++;
     }
 
-    ~Student() { count--; }
+    ~Patient() { count--; }
 
     void display() const override
     {
-        cout << "[Student] " << id
+        cout << "[Patient] " << id
              << " | " << name
-             << " | GPA: " << gpa << endl;
+             << " | Ward: " << wardType << endl;
     }
 
     void save(ofstream &out) const override
     {
-        out << "Student | " << id
+        out << "Patient | " << id
             << " | " << name
-            << " | GPA: " << gpa
+            << " | Ward: " << wardType
             << " | City: " << address.city << endl;
     }
 
     static int getCount() { return count; }
 };
 
-int Student::count = 0;
+int Patient::count = 0;
 
-/* =========================================================
-   Professor
-   - Domain model for professor entity
-   ========================================================= */
-class Professor : public Person
+/* ===================== DOCTOR ===================== */
+class Doctor : public Person
 {
 private:
     double salary;
 
 public:
-    Professor(const string &n, int i, const Address &addr, double s)
+    Doctor(const string &n, int i, const Address &addr, double s)
     {
         name = n;
         id = i;
@@ -132,27 +109,23 @@ public:
 
     void display() const override
     {
-        cout << "[Professor] " << id
+        cout << "[Doctor] " << id
              << " | " << name
              << " | Salary: $" << salary << endl;
     }
 
     void save(ofstream &out) const override
     {
-        out << "Professor | " << id
+        out << "Doctor | " << id
             << " | " << name
             << " | Salary: $" << salary
             << " | City: " << address.city << endl;
     }
 };
 
-/* =========================================================
-   UniversityRepository (Template)
-   - Manages storage and lifetime of objects
-   - SRP: data management only
-   ========================================================= */
+/* ===================== HOSPITAL REPOSITORY ===================== */
 template <typename T>
-class UniversityRepository
+class HospitalRepository
 {
 private:
     vector<T *> records;
@@ -174,24 +147,19 @@ public:
             r->display();
     }
 
-    // Provides read-only access for saving
     const vector<T *> &getAll() const
     {
         return records;
     }
 
-    ~UniversityRepository()
+    ~HospitalRepository()
     {
         for (auto r : records)
             delete r;
     }
 };
 
-/* =========================================================
-   FileService (Template)
-   - Handles persistence (file saving)
-   - Keeps file logic separate from business logic
-   ========================================================= */
+/* ===================== FILE SERVICE ===================== */
 template <typename T>
 class FileService
 {
@@ -204,104 +172,92 @@ public:
             cout << "File error.\n";
             return;
         }
-
         for (auto obj : data)
             obj->save(out);
-
         out.close();
         cout << "Saved to " << filename << endl;
     }
 };
 
-/* =========================================================
-   Menu
-   - Handles user interaction only
-   - No business or file logic inside
-   ========================================================= */
+/* ===================== MENU ===================== */
 class Menu
 {
 private:
-    UniversityRepository<Student> students;
-    UniversityRepository<Professor> professors;
+    HospitalRepository<Patient> patients;
+    HospitalRepository<Doctor> doctors;
 
 public:
-    // Entry point for the application
     void run()
     {
         int choice;
         do
         {
             cout << "\n=== MAIN MENU ===\n";
-            cout << "1. Students\n2. Professors\n3. Exit\nChoice: ";
-
+            cout << "1. Patients\n2. Doctors\n3. Exit\nChoice: ";
             if (!InputHelper::read(choice))
                 continue;
 
             if (choice == 1)
-                studentMenu();
+                patientMenu();
             else if (choice == 2)
-                professorMenu();
+                doctorMenu();
 
         } while (choice != 3);
     }
 
 private:
-    void studentMenu()
+    void patientMenu()
     {
         int choice;
         do
         {
-            cout << "\n--- Student Menu ---\n";
-            cout << "1. Add\n2. View\n3. Save\n4. Back\nChoice: ";
-
+            cout << "\n--- Patient Menu ---\n";
+            cout << "1. Add Patient\n2. View Patients\n3. Save Patients\n4. Back\nChoice: ";
             if (!InputHelper::read(choice))
                 continue;
 
             try
             {
                 if (choice == 1)
-                    addStudent();
+                    addPatient();
                 else if (choice == 2)
-                    students.displayAll();
+                    patients.displayAll();
                 else if (choice == 3)
-                    FileService<Student>::save("students.txt", students.getAll());
+                    FileService<Patient>::save("patients.txt", patients.getAll());
             }
             catch (const exception &e)
             {
-                cout << e.what() << endl;
+                cout << "Error: " << e.what() << endl;
             }
 
         } while (choice != 4);
     }
 
-    void professorMenu()
+    void doctorMenu()
     {
         int choice;
         do
         {
-            cout << "\n--- Professor Menu ---\n";
-            cout << "1. Add\n2. View\n3. Save\n4. Back\nChoice: ";
-
+            cout << "\n--- Doctor Menu ---\n";
+            cout << "1. Add Doctor\n2. View Doctors\n3. Save Doctors\n4. Back\nChoice: ";
             if (!InputHelper::read(choice))
                 continue;
 
             if (choice == 1)
-                addProfessor();
+                addDoctor();
             else if (choice == 2)
-                professors.displayAll();
+                doctors.displayAll();
             else if (choice == 3)
-                FileService<Professor>::save("professors.txt", professors.getAll());
+                FileService<Doctor>::save("doctors.txt", doctors.getAll());
 
         } while (choice != 4);
     }
 
-    // Collects and validates student input
-    void addStudent()
+    void addPatient()
     {
-        string name;
+        string name, ward;
         Address addr;
         int id;
-        float gpa;
 
         cout << "Name: ";
         cin >> name;
@@ -312,15 +268,13 @@ private:
         cin >> addr.city;
         cout << "Street: ";
         cin >> addr.street;
-        cout << "GPA: ";
-        if (!InputHelper::read(gpa))
-            return;
+        cout << "Ward Type (General/ICU/VIP): ";
+        cin >> ward;
 
-        students.add(new Student(name, id, addr, gpa));
+        patients.add(new Patient(name, id, addr, ward));
     }
 
-    // Collects and validates professor input
-    void addProfessor()
+    void addDoctor()
     {
         string name;
         Address addr;
@@ -340,13 +294,11 @@ private:
         if (!InputHelper::read(salary))
             return;
 
-        professors.add(new Professor(name, id, addr, salary));
+        doctors.add(new Doctor(name, id, addr, salary));
     }
 };
 
-/* =========================================================
-   Main
-   ========================================================= */
+/* ===================== MAIN ===================== */
 int main()
 {
     Menu app;

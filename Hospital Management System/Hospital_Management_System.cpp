@@ -36,8 +36,8 @@ struct Address
     string street;
 };
 
-/* ===================== MEMBER (ABSTRACT) ===================== */
-class Member
+/* ===================== PERSON (ABSTRACT) ===================== */
+class Person
 {
 protected:
     string name;
@@ -45,61 +45,61 @@ protected:
     Address address;
 
 public:
-    virtual ~Member() = default;
+    virtual ~Person() = default;
     virtual void display() const = 0;
     virtual void save(ofstream &out) const = 0;
 };
 
-/* ===================== GYMMEMBER ===================== */
-class GymMember : public Member
+/* ===================== PATIENT ===================== */
+class Patient : public Person
 {
 private:
-    int membershipLevel; // 1-Basic, 2-Premium, 3-VIP
+    string wardType; // e.g., General, ICU, VIP
     static int count;
 
 public:
-    GymMember(const string &n, int i, const Address &addr, int level)
+    Patient(const string &n, int i, const Address &addr, const string &ward)
     {
-        if (level < 1 || level > 3)
-            throw runtime_error("Membership level must be 1 (Basic), 2 (Premium), or 3 (VIP)");
+        if (ward != "General" && ward != "ICU" && ward != "VIP")
+            throw runtime_error("Ward type must be General, ICU, or VIP");
 
         name = n;
         id = i;
         address = addr;
-        membershipLevel = level;
+        wardType = ward;
         count++;
     }
 
-    ~GymMember() { count--; }
+    ~Patient() { count--; }
 
     void display() const override
     {
-        cout << "[GymMember] " << id
+        cout << "[Patient] " << id
              << " | " << name
-             << " | Membership Level: " << membershipLevel << endl;
+             << " | Ward: " << wardType << endl;
     }
 
     void save(ofstream &out) const override
     {
-        out << "GymMember | " << id
+        out << "Patient | " << id
             << " | " << name
-            << " | Level: " << membershipLevel
+            << " | Ward: " << wardType
             << " | City: " << address.city << endl;
     }
 
     static int getCount() { return count; }
 };
 
-int GymMember::count = 0;
+int Patient::count = 0;
 
-/* ===================== TRAINER ===================== */
-class Trainer : public Member
+/* ===================== DOCTOR ===================== */
+class Doctor : public Person
 {
 private:
     double salary;
 
 public:
-    Trainer(const string &n, int i, const Address &addr, double s)
+    Doctor(const string &n, int i, const Address &addr, double s)
     {
         name = n;
         id = i;
@@ -109,23 +109,23 @@ public:
 
     void display() const override
     {
-        cout << "[Trainer] " << id
+        cout << "[Doctor] " << id
              << " | " << name
              << " | Salary: $" << salary << endl;
     }
 
     void save(ofstream &out) const override
     {
-        out << "Trainer | " << id
+        out << "Doctor | " << id
             << " | " << name
             << " | Salary: $" << salary
             << " | City: " << address.city << endl;
     }
 };
 
-/* ===================== GYM REPOSITORY ===================== */
+/* ===================== HOSPITAL REPOSITORY ===================== */
 template <typename T>
-class GymRepository
+class HospitalRepository
 {
 private:
     vector<T *> records;
@@ -152,7 +152,7 @@ public:
         return records;
     }
 
-    ~GymRepository()
+    ~HospitalRepository()
     {
         for (auto r : records)
             delete r;
@@ -183,8 +183,8 @@ public:
 class Menu
 {
 private:
-    GymRepository<GymMember> members;
-    GymRepository<Trainer> trainers;
+    HospitalRepository<Patient> patients;
+    HospitalRepository<Doctor> doctors;
 
 public:
     void run()
@@ -193,37 +193,37 @@ public:
         do
         {
             cout << "\n=== MAIN MENU ===\n";
-            cout << "1. Gym Members\n2. Trainers\n3. Exit\nChoice: ";
+            cout << "1. Patients\n2. Doctors\n3. Exit\nChoice: ";
             if (!InputHelper::read(choice))
                 continue;
 
             if (choice == 1)
-                memberMenu();
+                patientMenu();
             else if (choice == 2)
-                trainerMenu();
+                doctorMenu();
 
         } while (choice != 3);
     }
 
 private:
-    void memberMenu()
+    void patientMenu()
     {
         int choice;
         do
         {
-            cout << "\n--- Gym Member Menu ---\n";
-            cout << "1. Add Member\n2. View Members\n3. Save Members\n4. Back\nChoice: ";
+            cout << "\n--- Patient Menu ---\n";
+            cout << "1. Add Patient\n2. View Patients\n3. Save Patients\n4. Back\nChoice: ";
             if (!InputHelper::read(choice))
                 continue;
 
             try
             {
                 if (choice == 1)
-                    addMember();
+                    addPatient();
                 else if (choice == 2)
-                    members.displayAll();
+                    patients.displayAll();
                 else if (choice == 3)
-                    FileService<GymMember>::save("members.txt", members.getAll());
+                    FileService<Patient>::save("patients.txt", patients.getAll());
             }
             catch (const exception &e)
             {
@@ -233,31 +233,31 @@ private:
         } while (choice != 4);
     }
 
-    void trainerMenu()
+    void doctorMenu()
     {
         int choice;
         do
         {
-            cout << "\n--- Trainer Menu ---\n";
-            cout << "1. Add Trainer\n2. View Trainers\n3. Save Trainers\n4. Back\nChoice: ";
+            cout << "\n--- Doctor Menu ---\n";
+            cout << "1. Add Doctor\n2. View Doctors\n3. Save Doctors\n4. Back\nChoice: ";
             if (!InputHelper::read(choice))
                 continue;
 
             if (choice == 1)
-                addTrainer();
+                addDoctor();
             else if (choice == 2)
-                trainers.displayAll();
+                doctors.displayAll();
             else if (choice == 3)
-                FileService<Trainer>::save("trainers.txt", trainers.getAll());
+                FileService<Doctor>::save("doctors.txt", doctors.getAll());
 
         } while (choice != 4);
     }
 
-    void addMember()
+    void addPatient()
     {
-        string name;
+        string name, ward;
         Address addr;
-        int id, level;
+        int id;
 
         cout << "Name: ";
         cin >> name;
@@ -268,14 +268,13 @@ private:
         cin >> addr.city;
         cout << "Street: ";
         cin >> addr.street;
-        cout << "Membership Level (1-Basic,2-Premium,3-VIP): ";
-        if (!InputHelper::read(level))
-            return;
+        cout << "Ward Type (General/ICU/VIP): ";
+        cin >> ward;
 
-        members.add(new GymMember(name, id, addr, level));
+        patients.add(new Patient(name, id, addr, ward));
     }
 
-    void addTrainer()
+    void addDoctor()
     {
         string name;
         Address addr;
@@ -295,7 +294,7 @@ private:
         if (!InputHelper::read(salary))
             return;
 
-        trainers.add(new Trainer(name, id, addr, salary));
+        doctors.add(new Doctor(name, id, addr, salary));
     }
 };
 

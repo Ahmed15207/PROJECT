@@ -7,19 +7,22 @@
 using namespace std;
 
 /* =========================================================
-   InputHelper
-   - Centralized input validation
+    InputHelper
+    - Centralized input checker
    ========================================================= */
 class InputHelper
 {
 public:
+    // Resets error flags and flushes the input buffer (removes bad characters).
     static void clear()
     {
         cin.clear();
         cin.ignore(10000, '\n');
     }
 
+    // Safely attempts input. Returns false (and clears buffer) if the wrong type is entered.
     template <typename T>
+
     static bool read(T &value)
     {
         cin >> value;
@@ -33,8 +36,8 @@ public:
 };
 
 /* =========================================================
-   Address
-   - Simple data structure
+    Address
+    - Simple data structure
    ========================================================= */
 struct Address
 {
@@ -43,8 +46,8 @@ struct Address
 };
 
 /* =========================================================
-   Person (Abstract Base Class)
-   - Common interface for all people
+    Person (Abstract Base Class)
+    - Common interface for all people
    ========================================================= */
 class Person
 {
@@ -65,8 +68,8 @@ public:
 };
 
 /* =========================================================
-   Student
-   - Domain model for student entity
+    Student
+    - Domain model for student entity
    ========================================================= */
 class Student : public Person
 {
@@ -109,6 +112,7 @@ public:
              << " | City: " << address.city << endl;
     }
 
+    // this function prints a line of text directly into the .txt file
     void save(ofstream &out) const override
     {
         out << "Student | " << id
@@ -137,8 +141,8 @@ public:
 int Student::count = 0;
 
 /* =========================================================
-   Professor
-   - Domain model for professor entity
+    Professor
+    - Domain model for professor entity
    ========================================================= */
 class Professor : public Person
 {
@@ -176,8 +180,8 @@ public:
 };
 
 /* =========================================================
-   UniversityRepository (Template)
-   - Manages storage and lifetime of objects
+    UniversityRepository (Template)
+    - Manages storage and lifetime of objects
    ========================================================= */
 template <typename T>
 class UniversityRepository
@@ -202,6 +206,7 @@ public:
             r->display();
     }
 
+    // Returns a direct, read-only reference to the list to avoid changing details by mistake.
     const vector<T *> &getAll() const
     {
         return records;
@@ -215,8 +220,8 @@ public:
 };
 
 /* =========================================================
-   FileService (Template)
-   - Handles persistence
+    FileService (Template)
+    - Handles persistence
    ========================================================= */
 template <typename T>
 class FileService
@@ -225,7 +230,8 @@ public:
     static void save(const string &filename, const vector<T *> &data)
     {
         ofstream out(filename);
-        if (!out)
+
+        if (!out) // checks if the file opened correctly
         {
             cout << "File error.\n";
             return;
@@ -240,8 +246,8 @@ public:
 };
 
 /* =========================================================
-   Menu
-   - Handles user interaction
+    Menu
+    - Handles user interaction
    ========================================================= */
 class Menu
 {
@@ -367,7 +373,7 @@ private:
 };
 
 /* =========================================================
-   Main
+    Main
    ========================================================= */
 int main()
 {

@@ -75,7 +75,7 @@ class Student : public Person
 {
 private:
     float gpa;
-    float lastQuizScores[3]; // Fixed size array for recent scores
+    float lastTestScores[3]; // Fixed size array for recent scores
     static int count;
 
 public:
@@ -83,7 +83,7 @@ public:
     {
         gpa = 0.0;
         for (int i = 0; i < 3; i++)
-            lastQuizScores[i] = 0.0;
+            lastTestScores[i] = 0.0;
         count++;
     }
 
@@ -96,9 +96,10 @@ public:
         id = i;
         address = addr;
         gpa = g;
+
         // Initialize with default scores
         for (int k = 0; k < 3; k++)
-            lastQuizScores[k] = 10.0;
+            lastTestScores[k] = 10.0;
         count++;
     }
 
@@ -237,7 +238,7 @@ public:
             return;
         }
 
-        for (auto obj : data)
+        for (auto obj : data) // "auto" data type is used to encourage polymorphisim
             obj->save(out);
 
         out.close();
